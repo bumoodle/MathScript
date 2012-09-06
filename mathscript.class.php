@@ -3,7 +3,7 @@
 /*
 ================================================================================
 
-EvalMath with MathScript
+MathScript Interpreter
 
 by Kyle Temkin <ktemkin@binghamton.edu>
 Copyright (C) 2011 Binghamton University <http://www.binghamton.edu>
@@ -18,36 +18,38 @@ with some modifications by skodak
 ================================================================================
 */
 
-//Core constructs for EvalMath
-define('EVALMATH_IDENTIFIER', '[A-Za-z][A-Za-z0-9_\[\]\.\:]*');
+//Core constructs for MathScript
+define('MATHSCRIPT_IDENTIFIER', '[A-Za-z][A-Za-z0-9_\[\]\.\:]*');
 
-//define('EVALMATH_STRING_ASSIGNMENT', '/^\s*('.EVALMATH_IDENTIFIER.')\s*=\s*"([^"]+)"$/');
-define('EVALMATH_VAR_ASSIGNMENT', '/^\s*('.EVALMATH_IDENTIFIER.')\s*=\s*([^=].+)$/');
-define('EVALMATH_VAR_OPERATION_ASSIGNMENT', '/^\s*('.EVALMATH_IDENTIFIER.')\s*(\+|\-|\*|\/|\||&|%)=\s*([^=].+)$/');
-define('EVALMATH_FUNCTION_DEF', '/^\s*('.EVALMATH_IDENTIFIER.')\s*\(\s*('.EVALMATH_IDENTIFIER.'(?:\s*,\s*'.EVALMATH_IDENTIFIER.')*)\s*\)\s*=\s*(.+)$/');
-define('EVALMATH_LEGAL_CHARS', '/[^\w\s+*^\/()\.,-"]/');
-define('EVALMATH_FUNCTION_CLOSE', '/^('.EVALMATH_IDENTIFIER.')\($/');
+//define('MATHSCRIPT_STRING_ASSIGNMENT', '/^\s*('.MATHSCRIPT_IDENTIFIER.')\s*=\s*"([^"]+)"$/');
+define('MATHSCRIPT_VAR_ASSIGNMENT', '/^\s*('.MATHSCRIPT_IDENTIFIER.')\s*=\s*([^=].+)$/');
+define('MATHSCRIPT_VAR_OPERATION_ASSIGNMENT', '/^\s*('.MATHSCRIPT_IDENTIFIER.')\s*(\+|\-|\*|\/|\||&|%)=\s*([^=].+)$/');
+define('MATHSCRIPT_FUNCTION_DEF', '/^\s*('.MATHSCRIPT_IDENTIFIER.')\s*\(\s*('.MATHSCRIPT_IDENTIFIER.'(?:\s*,\s*'.MATHSCRIPT_IDENTIFIER.')*)\s*\)\s*=\s*(.+)$/');
+define('MATHSCRIPT_LEGAL_CHARS', '/[^\w\s+*^\/()\.,-"]/');
+define('MATHSCRIPT_FUNCTION_CLOSE', '/^('.MATHSCRIPT_IDENTIFIER.')\($/');
 
 //TODO: switch " for '
-define('EVALMATH_QUOTED_STRING', '/"((?:[^"]|\\\\.)*)"/');
+define('MATHSCRIPT_QUOTED_STRING', '/"((?:[^"]|\\\\.)*)"/');
 
 //array indicies (unchanged for backwards compatibility)
-define('EVALMATH_FUNCTION_NAME',  'fnn');
-define('EVALMATH_ARGUMENT_COUNT', 'argcount');
-define('EVALMATH_FUNCTION_TOKEN', 'fn'); 
-define('EVALMATH_ARGUMENTS', 'args');
-define('EVALMATH_FUNCTION_BODY', 'func');
+define('MATHSCRIPT_FUNCTION_NAME',  'fnn');
+define('MATHSCRIPT_ARGUMENT_COUNT', 'argcount');
+define('MATHSCRIPT_FUNCTION_TOKEN', 'fn'); 
+define('MATHSCRIPT_ARGUMENTS', 'args');
+define('MATHSCRIPT_FUNCTION_BODY', 'func');
 
 //"pass by name" for literals
-define('EVALMATH_TYPE_LITERAL', null);
-define('EVALMATH_TYPE_RESULT', null);
+define('MATHSCRIPT_TYPE_LITERAL', null);
+define('MATHSCRIPT_TYPE_RESULT', null);
 
 //DEBUG
 //error_reporting(E_ALL);
 //ini_set('display_errors', 1);
 
+/*
 class EvalMath extends MathScript
 { }
+*/
 
 class MathScript
 {
@@ -141,7 +143,7 @@ class MathScript
     private $executing = false;
 
     /**
-     * Creates a new EvalMath mathscript evaluator.
+     * Creates a new MathScript mathscript evaluator.
      * 
      * @param string $modules   A array of extension modules to load. "spreadsheet" and "basicmath" are built in; others must be included.
      */
@@ -199,7 +201,7 @@ class MathScript
         $expr = $this->preprocess($expr);
 
         //if the given expression is a variable assignment:
-        if (preg_match(EVALMATH_VAR_ASSIGNMENT, $expr, $matches)) 
+        if (preg_match(MATHSCRIPT_VAR_ASSIGNMENT, $expr, $matches)) 
         {
             //set the assignment target
             $this->assignment_target = $matches[1];
@@ -218,7 +220,7 @@ class MathScript
             $retval = $to_assign; // and return the resulting value
         }
 
-        elseif(preg_match(EVALMATH_VAR_OPERATION_ASSIGNMENT, $expr, $matches))
+        elseif(preg_match(MATHSCRIPT_VAR_OPERATION_ASSIGNMENT, $expr, $matches))
         {
             //get the initial value of the left-hand-side of the expression
             $lhs = $this->dereference($matches[1]);
@@ -246,7 +248,7 @@ class MathScript
         }
 
         //handle function definitions 
-        elseif (preg_match(EVALMATH_FUNCTION_DEF, $expr, $matches))
+        elseif (preg_match(MATHSCRIPT_FUNCTION_DEF, $expr, $matches))
         {
 
             //extract the function name
@@ -267,7 +269,7 @@ class MathScript
                     return false;
 
             //finally, store the function definition
-            $this->user_functions[$function_name] = array(EVALMATH_ARGUMENTS => $args, EVALMATH_FUNCTION_BODY=> $stack);
+            $this->user_functions[$function_name] = array(MATHSCRIPT_ARGUMENTS => $args, MATHSCRIPT_FUNCTION_BODY=> $stack);
 
             //and return, indicating success
             $retval = true;
@@ -381,7 +383,7 @@ class MathScript
         $suffix = '';
 
         //determine if the given statement is a TCL-like function call
-        $tcl_call = preg_match('#^(\$?'.EVALMATH_IDENTIFIER.')\s+(.+)*$#ss', $expr, $matches) && $allow_tcl_calls;
+        $tcl_call = preg_match('#^(\$?'.MATHSCRIPT_IDENTIFIER.')\s+(.+)*$#ss', $expr, $matches) && $allow_tcl_calls;
 
         //if the expression is a TCL-style function call, process it
         if($tcl_call)
@@ -472,7 +474,7 @@ class MathScript
                 $rest_of_expr = substr($expr, $i);
 
                 //if we've run into a TCL-style variable, in ${identifier} form, require the entire contents of {} to match
-                if(preg_match('#^\$\{('.EVALMATH_IDENTIFIER.')\}#', $rest_of_expr, $matches))
+                if(preg_match('#^\$\{('.MATHSCRIPT_IDENTIFIER.')\}#', $rest_of_expr, $matches))
                 {
                     //if we have a variable with that exact name, 
                     if(array_key_exists($matches[1], $this->vars))
@@ -493,7 +495,7 @@ class MathScript
                 }
 
                 //if we've run into a TCL-style variable, in $identifier form
-                elseif(preg_match('#^\$('.EVALMATH_IDENTIFIER.')#', $rest_of_expr, $matches))
+                elseif(preg_match('#^\$('.MATHSCRIPT_IDENTIFIER.')#', $rest_of_expr, $matches))
                 {
                     //get the longest matching varaible
                     $var_name = $this->longest_matching_varaible($matches[1]);
@@ -779,7 +781,7 @@ class MathScript
 
         //add each function to the array
         foreach ($this->user_functions as $fnn=>$dat)
-            $output[] = $fnn . '(' . implode(',', $dat[EVALMATH_ARGUMENTS]) . ')';
+            $output[] = $fnn . '(' . implode(',', $dat[MATHSCRIPT_ARGUMENTS]) . ')';
 
         //and return the completed array of functions
         return $output;
@@ -811,7 +813,7 @@ class MathScript
     protected function infix_to_postfix($expr) 
     {
         //create a new stack which we'll use for our shunting yard algorithm
-        $stack = new EvalMathStack();
+        $stack = new mathscript_stack();
 
         //create a new, empty postfix expression, which will be populated herein
         $output = array(); 
@@ -826,7 +828,7 @@ class MathScript
         $expr = trim($expr);
 
         //if there's any non-printable characters in the expression, throw an exception
-        //if (preg_match(EVALMATH_ILLEGAL_CHARS, $expr, $matches)) 
+        //if (preg_match(MATHSCRIPT_ILLEGAL_CHARS, $expr, $matches)) 
         //    return $this->trigger("illegal character '{$matches[0]}'");
 
         //if our expression is terminated by an operator, throw an exception
@@ -859,7 +861,7 @@ class MathScript
 
             
             // find out if we're currently at the beginning of a number/variable/function/parenthesis/operand
-            $ex = preg_match('/^('.EVALMATH_IDENTIFIER.'\(?|\d+(?:\.\d*)?|\.\d+|\()/', substr($expr, $index), $match);
+            $ex = preg_match('/^('.MATHSCRIPT_IDENTIFIER.'\(?|\d+(?:\.\d*)?|\.\d+|\()/', substr($expr, $index), $match);
 
             //if we have a minus, and we're not expecting it as a binary operator, treat it as a unary negation
             if ($op == '-' && !$expecting_op)
@@ -943,7 +945,7 @@ class MathScript
 
 
                 //if we just finished parsing a function call
-                if (preg_match(EVALMATH_FUNCTION_CLOSE, $stack->last(2), $matches)) 
+                if (preg_match(MATHSCRIPT_FUNCTION_CLOSE, $stack->last(2), $matches)) 
                 { 
                     //extract the name of the function, 
                     $function_name = $matches[1]; 
@@ -955,7 +957,7 @@ class MathScript
                     $function_token = $stack->pop();
 
                     //and push the function data to the stack
-                    $output[] = array(EVALMATH_FUNCTION_TOKEN => $function_token, EVALMATH_FUNCTION_NAME => $function_name, EVALMATH_ARGUMENT_COUNT => $arg_count); 
+                    $output[] = array(MATHSCRIPT_FUNCTION_TOKEN => $function_token, MATHSCRIPT_FUNCTION_NAME => $function_name, MATHSCRIPT_ARGUMENT_COUNT => $arg_count); 
 
                     //check the arguments for the  the case where this is one of our language functions, which are defined below
                     if($this->extensions->function_exists($function_name)) 
@@ -970,8 +972,8 @@ class MathScript
                     elseif (array_key_exists($function_name, $this->user_functions)) 
                     {
                         //if an incorrect amount of arguments, raise an error
-                        if ($arg_count != count($this->user_functions[$function_name][EVALMATH_ARGUMENTS]))
-                            return $this->trigger("wrong number of arguments for $function_name: ($arg_count given, " . count($this->user_functions[$function_name][EVALMATH_ARGUMENTS]) . " expected)");
+                        if ($arg_count != count($this->user_functions[$function_name][MATHSCRIPT_ARGUMENTS]))
+                            return $this->trigger("wrong number of arguments for $function_name: ($arg_count given, " . count($this->user_functions[$function_name][MATHSCRIPT_ARGUMENTS]) . " expected)");
 
                     } 
 
@@ -1004,7 +1006,7 @@ class MathScript
                 }
 
                 //if the given line isn't finished like a function call, trigger an error
-                if (!preg_match(EVALMATH_FUNCTION_CLOSE, $stack->last(2), $matches))
+                if (!preg_match(MATHSCRIPT_FUNCTION_CLOSE, $stack->last(2), $matches))
                     return $this->trigger("unexpected ','");
 
                 //We now need to increase the argument count of the call, which is already on top the operator stack.
@@ -1039,7 +1041,7 @@ class MathScript
                 $val = $match[1];
 
                 //if we're opening a function
-                if (preg_match(EVALMATH_FUNCTION_CLOSE, $val, $matches)) 
+                if (preg_match(MATHSCRIPT_FUNCTION_CLOSE, $val, $matches)) 
                 {
                     //if the function is a known function, of any type
                     if (array_key_exists($matches[1], $this->user_functions) || $this->extensions->function_exists($matches[1]))
@@ -1091,7 +1093,7 @@ class MathScript
                     return $this->trigger("unexpected ')'");
 
                 //if we did just close a nullary function
-                if (preg_match(EVALMATH_FUNCTION_CLOSE, $stack->last(3), $matches)) 
+                if (preg_match(MATHSCRIPT_FUNCTION_CLOSE, $stack->last(3), $matches)) 
                 { 
                     //remove the open-paren and argument count from the stack
                     $stack->pop();
@@ -1106,7 +1108,7 @@ class MathScript
                         return $this->trigger('no form of '.$function_name.' accepts zero arguments');
 
                     //push the function call directly onto the stack
-                    $output[] = array(EVALMATH_FUNCTION_TOKEN =>$function_token, EVALMATH_FUNCTION_NAME =>$function_name, 'argcount'=> 0 );
+                    $output[] = array(MATHSCRIPT_FUNCTION_TOKEN =>$function_token, MATHSCRIPT_FUNCTION_NAME =>$function_name, 'argcount'=> 0 );
 
                     //and move forward with the parsing
                     $index++;
@@ -1288,7 +1290,7 @@ class MathScript
             return false;
 
         //create a new stack, which we'll use to evaluate the "postfix" expression
-        $stack = new EvalMathStack();
+        $stack = new mathscript_stack();
 
         //for each token in the postfix string
         foreach ($tokens as $token)
@@ -1298,8 +1300,8 @@ class MathScript
             if (is_array($token) && !array_key_exists('string', $token)) 
             { 
                 //get the function name, and the amount of arguments specified
-                $function_name = $token[EVALMATH_FUNCTION_NAME];
-                $arg_count = $token[EVALMATH_ARGUMENT_COUNT];
+                $function_name = $token[MATHSCRIPT_FUNCTION_NAME];
+                $arg_count = $token[MATHSCRIPT_ARGUMENT_COUNT];
 
                 //handle constructed functions, which are written in PHP for use by the scripted language
                 if ($this->extensions->function_exists($function_name))
@@ -1346,14 +1348,14 @@ class MathScript
                         return $this->trigger('internal error in function '.$function_name);
 
                     //push the result onto the stack
-                    $stack->push(array(EVALMATH_TYPE_RESULT, $result));
+                    $stack->push(array(MATHSCRIPT_TYPE_RESULT, $result));
                
                 }
                 //otherwise if this is a user (runtime) defined function, handle it 
                 elseif (array_key_exists($function_name, $this->user_functions)) 
                 {
                     //extract the expected amount of function arguments
-                    $expected_args = count($this->user_functions[$function_name][EVALMATH_ARGUMENTS]);
+                    $expected_args = count($this->user_functions[$function_name][MATHSCRIPT_ARGUMENTS]);
 
                     //start a new associative array, which will map the argument _name_ to the given argument
                     $args = array();
@@ -1368,7 +1370,7 @@ class MathScript
                             return $this->trigger_undefined_variable($reference);
 
                         //get the name for the current argument
-                        $arg_name = $this->user_functions[$function_name][EVALMATH_ARGUMENTS][$i];
+                        $arg_name = $this->user_functions[$function_name][MATHSCRIPT_ARGUMENTS][$i];
 
                         //and add the name/value pair to our array
                         $args[$arg_name] = $top;
@@ -1381,13 +1383,13 @@ class MathScript
                     $this->vars = array_merge($this->vars, $args);
 
                     //evaluate the given function via recursion
-                    $result = $this->evaluate_postfix($this->user_functions[$function_name][EVALMATH_FUNCTION_BODY]);
+                    $result = $this->evaluate_postfix($this->user_functions[$function_name][MATHSCRIPT_FUNCTION_BODY]);
 
                     //and discard any modifications to the variable space
                     $this->vars = $initial_vars;
 
                     //and push the result onto the stack
-                    $stack->push(array(EVALMATH_TYPE_RESULT, $result));
+                    $stack->push(array(MATHSCRIPT_TYPE_RESULT, $result));
                 }
             }
 
@@ -1411,7 +1413,7 @@ class MathScript
                 $result = call_user_func($handler, $this, $op1, $op2);
 
                 //and push the result onto the stack
-                $stack->push(array(EVALMATH_TYPE_RESULT, $result));
+                $stack->push(array(MATHSCRIPT_TYPE_RESULT, $result));
             }
             //handle unary operators
             elseif(!is_array($token) && array_key_exists($token, self::$operators) && self::$operators[$token]['arity'] == 1)
@@ -1442,7 +1444,7 @@ class MathScript
                 $result = call_user_func($handler, $this, $arg);
 
                 //and push the result onto the stack
-                $stack->push(array(EVALMATH_TYPE_RESULT, $result));
+                $stack->push(array(MATHSCRIPT_TYPE_RESULT, $result));
             }
  
             //handle variables and literals
@@ -1450,11 +1452,11 @@ class MathScript
             {
                 //if the token is an array with a "string" key, it's a string- push the core string to the stack, directly
                 if(is_array($token) && array_key_exists('string', $token))
-                    $stack->push(array(EVALMATH_TYPE_LITERAL, $token['string']));
+                    $stack->push(array(MATHSCRIPT_TYPE_LITERAL, $token['string']));
 
                 //if we've recieved a numeric token, push it directly onto the stack
                 elseif (is_numeric($token)) 
-                    $stack->push(array(EVALMATH_TYPE_LITERAL, $token));
+                    $stack->push(array(MATHSCRIPT_TYPE_LITERAL, $token));
 
                 //if we've recieved a local variable, push its value onto the stack
                 elseif (array_key_exists($token, $vars)) 
@@ -1513,7 +1515,7 @@ class MathScript
  * there's no documentation. I'm going to assume the author felt it was more efficient to keep a single array of max length, instead of constantly 
  * resizing to shrink the array.
  */
-class EvalMathStack 
+class mathscript_stack 
 {
 
     var $stack = array();
@@ -1580,7 +1582,7 @@ class mathscript_extension_manager
      */
     public function __construct($parent, $modules = array())
     {
-        //store a reference to the owning EvalMath class
+        //store a reference to the owning MathScript class
         $this->parent = $parent;
 
         //load each of the specified modules
@@ -2121,276 +2123,4 @@ class mathscript_basicmath
     {
         return atanh($a);
     }
-
-
-
-
 }
-
-/*
-// spreadsheet functions emulation
-// watch out for reversed args!!
-class EvalMath_DefaultPackage
-{
-
-    function baseconvert($args)
-    {
-        return baseconvert($a, $b, $c);     
-    }
-    
-    function bindec($args)
-    {
-        return bindec($args[0]);
-    }
-    
-    function dechex($args)
-    {
-        return dechex($args);
-    }
-    
-    
-    function decbin($args)
-    {
-        if(count($args) == 2)       
-            return substr(decbin($args[1]), -1 * $args[0]);
-        else    
-            return decbin($args[0]);
-    }
-    
-    function hexdec($args)
-    {
-        return hexdec($args);
-    }
-    
-    function decoct($args)
-    {
-        return decoct($args[0]);
-    }
-    
-    function octdec($args)
-    {
-        return octdec($args[0]);
-    }
-    
-    function pow($args)
-    {
-        return pow($args[1], $args[0]);
-    }
-    
-    function floor($args)
-    {
-        return floor($args[0]);
-    }
-    
-    function ceil($args)
-    {
-        return ceil($args[0]);
-    }
-    
-    function rad2deg($args)
-    {
-        return rad2deg($args[0]);
-    }
-    
-    function log2($args)
-    {
-        return log($args[0], 2);
-    }
-    
-    function ternary($args)
-    {
-        return $args[2] ? $args[1] : $args[0];
-    }
-    
-    function round($args) 
-    {
-        if (count($args)==1) {
-            return round($args[0]);
-        } else {
-            return round($args[1], $args[0]);
-        }
-    }
-    
-    function switchimage($args)
-    {
-        
-        global $CFG;
-        
-        //if possible, use moodle's config
-        if(!isset($CFG))
-            $prefix = '';
-        else
-            $prefix = $CFG->wwwroot;
-        
-        //convert the argument to binary, with at least the specified amount of bits
-        $bin = str_pad(decbin($args[1]), $args[0], '0', STR_PAD_LEFT);
-        $buffer = '<img src="'.$prefix.'/pix/q/sw_label.gif" />';
-        
-        
-        for($x = 0; $x < $args[0]; ++$x)
-        {
-            if($bin[$x]==="1")
-                $buffer .= '<img src="'.$prefix.'/pix/q/sw_on.gif" alt="on">';            
-            else
-                $buffer .= '<img src="'.$prefix.'/pix/q/sw_off.gif" alt="off">';            
-        } 
-         
-        return $buffer;
-        
-    }
-    
-    function mirror($args)
-    {
-        if(count($args) == 2)
-            return strrev(str_pad($args[1], $args[0], '0', STR_PAD_LEFT));
-        else
-            return strrev($args[0]);
-    }
-
-    function sum($args) 
-    {
-        $res = 0;
-        foreach($args as $a) {
-           $res += $a;
-        }
-        return $res;
-    }
-
-    function oneOf($args)
-    {
-        //if the "last" argument is an array, select from it
-        if(is_array($args[0]))
-            $args = $args[0];
-        
-        //return a random element from the variadic arguments
-        return $args[array_rand($args)];
-    }
-    
-    function bitand($args)
-    {
-        $initial = $args[0];
-        
-        for($i = 1; $i < count($args); ++$i)
-            $initial &= $args[$i];
-            
-        return $initial;
-    }
-    
-    function bitor($args)
-    {
-        $initial = $args[0];
-        
-        for($i = 1; $i < count($args); ++$i)
-            $initial |= $args[$i];
-            
-        return $initial;
-    }
-
-    function bitxor($args)
-    {
-        $initial = $args[0];
-        
-        for($i = 1; $i < count($args); ++$i)
-            $initial ^= $args[$i];
-            
-        return $initial;
-    }
- 
-    
-    function bitnot($args)
-    {
-        return ~$args[0];
-    }
-    
-    private static function num_and($a, $b)
-    {
-        if($a == 1 && $b == 1)
-            return 1;
-        else
-            return 0;
-    }
-    
-    function booland($args)
-    {
-        //here in full, because PHP's callbacks/lambdas/closures system is terrible
-        
-        $initial = $args[0];
-        
-        for($i = 1; $i < count($args); ++$i)
-            $initial = $initial && $args[$i];
-            
-        return $initial ? 1 : 0;
-    }
-    
-    function boolor($args)
-    {
-        //here in full, because PHP's callbacks/lambdas/closures system is terrible
-        
-        $initial = $args[0];
-        
-        for($i = 1; $i < count($args); ++$i)
-            $initial = $initial || $args[$i];
-            
-        return $initial ? 1 : 0;
-    }
-    
-    function boolnot($args)
-    {
-        return $args[0] ? 0 : 1;
-    }
-    
-    function boolean($args)
-    {
-        return array_rand(array('0', '1'));
-    }
-
-    function gt($args)
-    {
-        return ($args[1] > $args[0]) ? 1 : 0;
-    }
-
-    function lt($args)
-    {
-        return ($args[1] < $args[0]) ? 1 : 0;
-    }
-
-    function eq($args)
-    {
-        return ($args[1] == $args[0]) ? 1 : 0;
-    }
-
-    function join($args)
-    {
-        return implode('', array_reverse($args));
-    }
-
-
-    function select($args)
-    {
-        $count = count($args);
-
-        if(array_key_exists($count - $args[$count - 1] - 2,  $args))
-            return $args[$count - $args[$count - 1] - 2 ];
-        else
-            return 0;
-    }
-
-
-    function to_ascii($args)
-    {
-        return chr($args[0]);
-    }
-
-    function from_ascii($args)
-    {
-        return ord($args[0]);
-    }
-
-
-   /
-    
-}
- */
-
-
-?>

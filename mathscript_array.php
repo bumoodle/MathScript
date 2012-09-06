@@ -65,14 +65,14 @@ class mathscript_array
 
     public static function _unpack($self, $name, $array)
     {
-        if(!preg_match('#'.EVALMATH_IDENTIFIER.'#', $name))
+        if(!preg_match('#'.MATHSCRIPT_IDENTIFIER.'#', $name))
             return false;
 
         //TODO: allow recursive unpacking of multi-dimensional arrays
         foreach($array as $var => $value)
         {
             //if the resultant variable would be a valid value, import it into our scope
-            if(preg_match('#'.EVALMATH_IDENTIFIER.'#', $name.'['.$var.']'))
+            if(preg_match('#'.MATHSCRIPT_IDENTIFIER.'#', $name.'['.$var.']'))
                 $self->vars[$name.'['.$var.']'] = $value;
         }
 
