@@ -1,4 +1,4 @@
-<?
+<?php
 
 /**
  * Array function extension for MathScript.
