@@ -307,13 +307,15 @@ class MathScript
 
     }
 
-  
 
     //~ktemkin
-    public function evaluate_script($math_script, $local_context = false, $function_context = false)
+    public function evaluate_script($math_script, $local_context = false, $function_context = false, &$errors = null)
     {
         //and start a new array, which will store any errors which occur during script execution
-        $errors = array();
+        $errors = $errors ?: array();
+
+        //Assume a null initial return value. 
+        $return_value = null;
 
         //split the script into "lines" by semicolon
         $script_lines = self::split_into_statements($math_script); //explode(';', $math_script);
@@ -339,11 +341,11 @@ class MathScript
                 continue;
             
             //strip newlines, tabs and leading/trailing spces, as they're meaningless
-            #$line = trim(str_replace(array("\n", "\t"), ' ', $line));
+            //$line = trim(str_replace(array("\n", "\t"), ' ', $line));
             
             //evaluate the given line
-            $this->evaluate($line);
-            
+            $return_value = $this->evaluate($line);
+
             //if an error occurred, add it to our errors array
             if(!empty($this->last_error))
                 $errors[] = preg_replace('|on line <b>[0-9]+</b>|', '', $this->last_error).' (<em>'.$line.'</em>)';
@@ -368,8 +370,8 @@ class MathScript
                     unset($this->vars[$name]);
         }
 
-        //return the list of errors which occured; on success, it will be empty
-        return $errors;
+        //return the most recent return value
+        return $return_value;
     }
 
     /**
